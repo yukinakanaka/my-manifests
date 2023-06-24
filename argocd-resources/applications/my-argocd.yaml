@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-argocd
+spec:
+  destination:
+    name: ''
+    namespace: argocd
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: ''
+    repoURL: 'https://argoproj.github.io/argo-helm'
+    targetRevision: 5.36.1
+    chart: argo-cd
+    helm:
+      parameters:
+        - name: applicationSet.livenessProbe.failureThreshold
+          value: '4'
+  sources: []
+  project: default
