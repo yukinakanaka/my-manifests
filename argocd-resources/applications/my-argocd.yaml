@@ -17,6 +17,8 @@ spec:
         - name: applicationSet.livenessProbe.failureThreshold
           value: '4'
         - name: server.replicas
-          value: '2'
+          value: '1'
+  syncPolicy:
+    automated: {}
   sources: []
   project: default
