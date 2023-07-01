@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: my-api
+  name: my-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-api
+  template:
+    metadata:
+      labels:
+        app: my-api
+    spec:
+      containers:
+      - image: yukinakanaka/my-api:v0.0.1
+        name: my-api
+        resources:
+          requests:
+            cpu: 200m
+            memory: 200Mi
+          limits:
+            cpu: 200m
+            memory: 200Mi
