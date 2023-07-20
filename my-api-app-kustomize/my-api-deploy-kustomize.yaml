@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: my-api-kustomize
+  name: my-api-kustomize
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-api-kustomize
+  template:
+    metadata:
+      labels:
+        app: my-api-kustomize
+    spec:
+      containers:
+      - image: yukinakanaka/my-api
+        name: my-api-kustomize
+        resources:
+          requests:
+            cpu: 200m
+            memory: 200Mi
+          limits:
+            cpu: 200m
+            memory: 200Mi

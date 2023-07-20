@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- my-api-deploy-kustomize.yaml
+images:
+- name: yukinakanaka/my-api
+  newTag: v0.0.11
