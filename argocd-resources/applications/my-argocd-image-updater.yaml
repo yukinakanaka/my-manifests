@@ -12,7 +12,9 @@ spec:
     targetRevision: 0.9.1
     chart: argocd-image-updater
     helm:
-      parameters: []
+      parameters:
+        - name: config.logLevel
+          value: 'debug'
   sources: []
   project: default
   syncPolicy:
