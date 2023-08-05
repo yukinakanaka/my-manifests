@@ -1,0 +1,10 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: calendar-event-source
+  namespace: argo-events-lab
+spec:
+  calendar:
+    calendar-interval:
+      # creates an event every 60 seconds
+      interval: 60s

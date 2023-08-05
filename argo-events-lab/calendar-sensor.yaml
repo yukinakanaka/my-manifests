@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: calendar-sensor-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: calendar-sensor-role
+rules:
+- apiGroups: ["batch", "extensions"]
+  resources: ["jobs"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: calendar-sensor-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: calendar-sensor-role
+subjects:
+- kind: ServiceAccount
+  name: calendar-sensor-sa
+  namespace: argo-events-lab
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: calendar-sensor
+  namespace: argo-events-lab
+spec:
+  template:
+    serviceAccountName: calendar-sensor-sa
+  dependencies:
+    - name: calendar-dep
+      eventSourceName: calendar-event-source
+      eventName: calendar-interval
+  triggers:
+    - template:
+        name: calendar-job-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: batch/v1
+              kind: Job
+              metadata:
+                generateName: calendar-job-
+              spec:
+                ttlSecondsAfterFinished: 120
+                template:
+                  spec:
+                    restartPolicy: Never
+                    containers:
+                    - image: busybox
+                      name: echo-job
+                      command: [echo]
+                      args:
+                      - "THIS_WILL_BE_REPLACED"
+          parameters:
+            - src:
+                dependencyName: calendar-dep
+              dest: spec.template.spec.containers.0.args.0
