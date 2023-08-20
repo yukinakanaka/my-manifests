@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sqs-sensor-sa
+  namespace: argo-events-sqs-lab
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sqs-sensor-role
+  namespace: argo-events-sqs-lab
+rules:
+- apiGroups: ["batch", "extensions"]
+  resources: ["jobs"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sqs-sensor-binding
+  namespace: argo-events-sqs-lab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sqs-sensor-role
+subjects:
+- kind: ServiceAccount
+  name: sqs-sensor-sa
+  namespace: argo-events-sqs-lab
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: sqs-sensor
+  namespace: argo-events-sqs-lab
+spec:
+  template:
+    serviceAccountName: sqs-sensor-sa
+  dependencies:
+    - name: sqs-dep
+      eventSourceName: sqs-event-source
+      eventName: s3-triggered-queue
+  triggers:
+    - template:
+        name: sqs-job-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: batch/v1
+              kind: Job
+              metadata:
+                generateName: thumnail-job-
+                namespace: argo-events-sqs-lab
+              spec:
+                ttlSecondsAfterFinished: 120
+                backoffLimit: 0
+                template:
+                  spec:
+                    restartPolicy: Never
+                    containers:
+                    - image: yukinakanaka/thumnails:1.0.0
+                      name: thumnail
+                      command: 
+                      - python
+                      - app/src/thumnails.py
+                      args:
+                      - "<Bucket: THIS_WILL_BE_REPLACED_BY_PARAMETER>"
+                      - "<ObjectKey: THIS_WILL_BE_REPLACED_BY_PARAMETER>"
+                      env:
+                      - name: AWS_ACCESS_KEY_ID
+                        valueFrom:
+                          secretKeyRef:
+                            name: sqs-sensor-aws-secret
+                            key: accesskey
+                      - name: AWS_SECRET_ACCESS_KEY
+                        valueFrom:
+                          secretKeyRef:
+                            name: sqs-sensor-aws-secret
+                            key: secretkey
+                      - name: UPLOAD_BUCKET
+                        valueFrom:
+                          configMapKeyRef:
+                            name: sqs-sensor-configmap
+                            key: uploadbucket
+          parameters:
+            - src:
+                dependencyName: sqs-dep
+                dataKey: body.Records.0.s3.bucket.name
+              dest: spec.template.spec.containers.0.args.0
+            - src:
+                dependencyName: sqs-dep
+                dataKey: body.Records.0.s3.object.key
+              dest: spec.template.spec.containers.0.args.1

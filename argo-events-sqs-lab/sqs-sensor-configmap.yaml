@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sqs-sensor-configmap
+  namespace: argo-events-sqs-lab
+data:
+  uploadbucket: s3-trigger-in-k8s-32410-upload

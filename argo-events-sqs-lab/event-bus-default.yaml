@@ -1,0 +1,8 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: default
+  namespace: argo-events-sqs-lab
+spec:
+  jetstream:
+    version: latest

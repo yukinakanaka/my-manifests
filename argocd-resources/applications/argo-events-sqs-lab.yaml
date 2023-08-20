@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-events-sqs-lab
+spec:
+  destination:
+    namespace: argo-events-sqs-lab
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: argo-events-sqs-lab
+    repoURL: 'https://github.com/yukinakanaka/my-manifests.git'
+    targetRevision: HEAD
+  sources: []
+  project: default
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false

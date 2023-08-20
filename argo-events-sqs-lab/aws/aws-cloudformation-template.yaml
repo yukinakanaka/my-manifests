@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Resources for using s3 trigger in k8s
+
+Parameters:
+  SourceImageBucketName:
+    Type: String
+
+Resources:
+  # SQS
+  SourceImageQueue:
+    Type: AWS::SQS::Queue
+
+  # S3 bucket
+  SourceImageBucket:
+    Type: 'AWS::S3::Bucket'
+    DependsOn:
+      - QueuePolicy
+    Properties:
+      BucketName: !Ref SourceImageBucketName
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Queue: !GetAtt SourceImageQueue.Arn
+
+  QueuePolicy:
+    Type: 'AWS::SQS::QueuePolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: "s3.amazonaws.com"
+            Action:
+              - 'SQS:SendMessage'
+            Resource: !GetAtt SourceImageQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Join ["",['arn:aws:s3:::',!Ref SourceImageBucketName]]
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Queues:
+        - !Ref SourceImageQueue
+
+  ThumbnailBucket:
+    Type: 'AWS::S3::Bucket'
+    DependsOn:
+      - QueuePolicy
+    Properties:
+      BucketName: !Join ["",[!Ref SourceImageBucketName, "-upload"]]
+
+
+  # IAM User for ArgoEventsSource
+  UserArgoEventsSource:
+    Type: "AWS::IAM::User"
+    Properties:
+      Path: "/"
+      UserName: "ArgoEventsSource"
+      Policies:
+        - PolicyName: SQSRecieveDeletePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:GetQueue*'
+                  - 'sqs:DeleteMessage*'
+                  - 'sqs:ReceiveMessage'
+                Resource: !GetAtt SourceImageQueue.Arn
+
+  UserArgoEventsSourceAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref UserArgoEventsSource
+
+  UserArgoEventsSourceAccessKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${UserArgoEventsSource}-credentials
+      SecretString: !Sub "{\"accessKeyId\":\"${UserArgoEventsSourceAccessKey}\",\"secretAccessKey\":\"${UserArgoEventsSourceAccessKey.SecretAccessKey}\"}"
+
+  # IAM User for ArgoEventsSensor
+  UserArgoEventsSensor:
+    Type: "AWS::IAM::User"
+    Properties:
+      Path: "/"
+      UserName: "ArgoEventsSensor"
+      Policies:
+        - PolicyName: S3ReadWritePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:Get*'
+                  - 's3:List*'
+                Resource: !Join ["",['arn:aws:s3:::', !Ref SourceImageBucket, '/*']]
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject*'
+                Resource: !Join ["",['arn:aws:s3:::', !Ref ThumbnailBucket, '/*']]
+
+  UserArgoEventsSensorAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref UserArgoEventsSensor
+
+  UserArgoEventsSensorAccessKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${UserArgoEventsSensor}-credentials
+      SecretString: !Sub "{\"accessKeyId\":\"${UserArgoEventsSensorAccessKey}\",\"secretAccessKey\":\"${UserArgoEventsSensorAccessKey.SecretAccessKey}\"}"
+
+Outputs:
+  SourceImageQueue:
+    Description: SQS queue name
+    Value: !GetAtt  SourceImageQueue.QueueName
+    Export:
+      Name: ArgoEventsQueueName
+  SourceImageBucketName:
+    Description: Source image's bucket name
+    Value: !Ref SourceImageBucket
+    Export:
+      Name: ArgoEventsSourceImageBucketName
+  ThumbnailBucketName:
+    Description: Thumbnail's bucket name
+    Value: !Ref ThumbnailBucket
+    Export:
+      Name: ArgoEventsThumbnailBucketName
