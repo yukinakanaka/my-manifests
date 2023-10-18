@@ -10,3 +10,4 @@ Kubernetes Manifests for GitOps with ArgoCD
 - [Automate image tag update with ArgoCD Image Updater](https://yuki-nakamura.com/2023/07/20/automate-updating-image-tag-with-argocd-image-updater/)
 - [Install Sealed Secrets via Helm](https://yuki-nakamura.com/2023/07/30/install-sealed-secrets-via-helm/)
 - [Install Argo Events via Helm and Create a simple event-driven workflow](https://yuki-nakamura.com/2023/08/06/install-argo-events-via-helm-and-create-a-simple-event-driven-workflow/)
+- [Use an AWS S3 trigger in k8s with Argo Events](https://yuki-nakamura.com/2023/08/21/use-an-aws-s3-trigger-in-k8s-with-argo-events/)
